@@ -1,10 +1,11 @@
-import { useState, ChangeEvent, FormEvent, Dispatch } from "react";
+import { useState, ChangeEvent, FormEvent, Dispatch, useEffect } from "react";
 import { v4 as uuidv4 } from "uuid";
 import { categories } from "../data/categories";
 import type { Activity } from "../types";
-import { ActivityActions } from "../reducers/activity-reducer";
+import { ActivityActions, ActivityState } from "../reducers/activity-reducer";
 
 type FormProps = {
+  state: ActivityState;
   dispatch: Dispatch<ActivityActions>;
 };
 
@@ -15,12 +16,15 @@ const initialState: Activity = {
   calories: 0,
 };
 
-export default function Form({ dispatch }: FormProps) {
+export default function Form({ state, dispatch }: FormProps) {
+  // State
   const [activity, setActivity] = useState<Activity>(initialState);
 
+  // Form validation
   const isValidActivity = () =>
     activity.name.trim() !== "" && activity.calories > 0;
 
+  // Handlers
   const handleChange = (
     e: ChangeEvent<HTMLSelectElement> | ChangeEvent<HTMLInputElement>
   ) => {
@@ -36,6 +40,15 @@ export default function Form({ dispatch }: FormProps) {
     dispatch({ type: "save-activity", payload: { newActivity: activity } });
     setActivity({ ...initialState, id: uuidv4() });
   };
+
+  useEffect(() => {
+    if (state.activeId) {
+      const selectedActivity = state.activities.filter(
+        (stateActivity) => stateActivity.id === state.activeId
+      )[0];
+      setActivity(selectedActivity);
+    }
+  }, [state.activeId]);
 
   return (
     <form
@@ -93,7 +106,11 @@ export default function Form({ dispatch }: FormProps) {
       </div>
       <input
         type="submit"
-        value={activity.category === 1 ? "Guardar comida" : "Guardar ejercicio"}
+        value={
+          state.activeId
+            ? "Actualizar " + (activity.category === 1 ? "comida" : "ejercicio")
+            : "Guardar " + (activity.category === 1 ? "comida" : "ejercicio")
+        }
         disabled={!isValidActivity()}
         className={`bg-gray-700 hover:bg-gray-900 w-full p-2 font-bold uppercase text-white transition disabled:opacity-10 ${
           isValidActivity() ? "cursor-pointer" : "cursor-not-allowed"
